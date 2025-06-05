@@ -2,7 +2,7 @@
 using CustomerManager.Business;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using CustomerManager.Shared;
+using CustomerManager.Shared.DTO;
 
 namespace CustomerManager.Api.Controllers;
 
@@ -14,7 +14,7 @@ public class SellingInvoiceController(IBusiness business, ILogger<SellingInvoice
 	private readonly ILogger<SellingInvoiceController> _logger = logger;
 
 	[HttpPost(Name = "CreateInvoice")]
-	public async Task<ActionResult> CreateInvoice(SellingInvoiceDto invoice)
+	public async Task<ActionResult> CreateInvoice(CreateSellingInvoiceDto invoice)
 	{
 
 		await _business.CreateInvoiceAsync(invoice);
@@ -26,8 +26,8 @@ public class SellingInvoiceController(IBusiness business, ILogger<SellingInvoice
 	[HttpGet(Name = "GetInvoice")]
 	public async Task<ActionResult> ReadInvoice(int invoiceId)
 	{
-		await _business.GetInvoiceAsync(invoiceId);
-		return Ok();
+		var result = await _business.GetInvoiceAsync(invoiceId);
+		return Ok(result);
 	}
 
 	[HttpDelete(Name = "DeleteInvoice")]

@@ -9,10 +9,9 @@ namespace CustomerManager.Repository.Model
     public class Product
     {
 		public int Id { get; set; }
-		public int Pieces { get; set; }
+		public int AvailablePieces { get; set; }
 		public decimal Price { get; set; }
 		public int VAT { get; set; }
-		public Invoice Invoice { get; set; } 
-		public int InvoiceId { get; set; }
+		public IEnumerable<InvoiceProducts> InvoiceProduct { get; set; } 
 	}
 }

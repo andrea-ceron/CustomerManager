@@ -13,7 +13,7 @@ namespace CustomerManager.Repository.Model
 		public InvoiceStatus Status { get; set; }
 		public int CustomerId { get; set; }
 		public Customer Customer { get; set; }
-		public List<Product> Products { get; set; }
+		public List<InvoiceProducts> ProductList { get; set; }
 		public Address Address{get; set;}
 		public int? AddressId { get; set; }
 

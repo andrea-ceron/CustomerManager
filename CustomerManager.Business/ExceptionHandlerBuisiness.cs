@@ -6,18 +6,18 @@ using System.Threading.Tasks;
 
 namespace CustomerManager.Business
 {
-    public class ExceptionHandler : Exception
+    public class ExceptionHandlerBuisiness : Exception
     {
 		public int StatusCode { get; }
 		public Object? InvolvedElement { get; }
 
-		public ExceptionHandler(string message, int statusCode = 400)
+		public ExceptionHandlerBuisiness(string message, int statusCode = 400)
 			: base(message)
 		{
 			StatusCode = statusCode;
 		}
 
-		public ExceptionHandler(string message, Object elem, int statusCode = 400)
+		public ExceptionHandlerBuisiness(string message, Object elem, int statusCode = 400)
 			:base(message)
 		{
 			StatusCode = statusCode;

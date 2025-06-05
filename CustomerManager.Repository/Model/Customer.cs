@@ -15,7 +15,6 @@ namespace CustomerManager.Repository.Model
 		public string Phone { get; set; }
 		public List<Address> Address { get; set; }
 		public List<Invoice> Invoices { get; set; }
-		public IdentityStatus Status { get; set; }
 		public string CompanyName { get; set; }
 		public string VATNumber { get; set; }
 		public string TaxCode { get; set; }

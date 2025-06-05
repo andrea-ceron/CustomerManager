@@ -21,9 +21,6 @@ namespace CustomerManager.Repository
 				.WithOne(p => p.Customer)
 				.HasForeignKey(p => p.CustomerId)
 				.OnDelete(DeleteBehavior.Cascade);
-			mb.Entity<Customer>()
-				.Property(i => i.Status)
-				.HasConversion<string>();
 			
 			mb.Entity<Invoice>().HasKey(i => i.Id);
 			mb.Entity<Invoice>()
@@ -32,7 +29,7 @@ namespace CustomerManager.Repository
 			mb.Entity<Invoice>()
 				.Property(inv => inv.Status)
 				.HasConversion<string>();
-			mb.Entity<Invoice>().HasMany(i => i.Products)
+			mb.Entity<Invoice>().HasMany(i => i.ProductList)
 				.WithOne(p => p.Invoice)
 				.HasForeignKey(p => p.InvoiceId);
 
@@ -48,6 +45,10 @@ namespace CustomerManager.Repository
 			mb.Entity<Product>()
 				.Property(i => i.Id)
 				.ValueGeneratedOnAdd();
+			mb.Entity<Product>()
+				.HasMany(i => i.InvoiceProduct)
+				.WithOne(p => p.Product)
+				.HasForeignKey(p => p.ProductId);
 
 
 			base.OnModelCreating(mb);
@@ -58,6 +59,7 @@ namespace CustomerManager.Repository
 		public DbSet<Invoice> Invoices { get; set; }
 		public DbSet<Address> Addresses { get; set; }
 		public DbSet<Product> Products { get; set; }
+		public DbSet<InvoiceProducts> InvoiceProducts { get; set; }
 
 
 

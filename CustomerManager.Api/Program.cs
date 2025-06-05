@@ -14,6 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<ClientsDbContext>(options => options.UseSqlServer("name=ConnectionStrings:ClientsDbContext", b =>b.MigrationsAssembly("CustomerManager.Api")));
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<IBusiness, Business>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

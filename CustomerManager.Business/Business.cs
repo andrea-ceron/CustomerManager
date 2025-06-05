@@ -1,67 +1,51 @@
-﻿using CustomerManager.Business.Abstraction;
+﻿using AutoMapper;
+using CustomerManager.Business.Abstraction;
+using CustomerManager.Business.DTOHelper;
 using CustomerManager.Repository.Abstraction;
 using CustomerManager.Repository.Model;
 using CustomerManager.Shared;
+using CustomerManager.Shared.DTO;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 
 namespace CustomerManager.Business
 {
-	public class Business(IRepository repository, ILogger<Business> Logger) : IBusiness
+	public class Business(IRepository repository, ILogger<Business> logger, IMapper _mapper) : IBusiness
 	{
-
-		public async Task CreateCustomerAsync(CustomerDto Customer, List<AddressDto> AddressList, CancellationToken ct = default)
+		#region Customer
+		public async Task CreateCustomerAsync(CreateCustomerDto Customer, CancellationToken ct = default)
 		{
-			if (Customer == null)
-				throw new ExceptionHandler("Il CustomerDto non può essere null.", 400);
-			if (AddressList == null || AddressList.Count == 0)
-				throw new ExceptionHandler("È necessario fornire almeno un address.", 400);
-			var resCustomer = await repository.CreateCustomerAsync(Customer.CompanyName, Customer.VATNumber, Customer.TaxCode, Customer.CertifiedEmail, Customer.Email, Customer.Phone, ct);
-			if (resCustomer == null)
-				throw new ExceptionHandler("Errore durante la creazione del cliente.", 500);
-			await repository.SaveChangesAsync(ct);
-			foreach(var address in AddressList)
+			var AddressList = Customer.AddingAddress;
+			Customer.AddingAddress = new List<CreateAddressDto>();
+			Customer customer = _mapper.Map<Customer>(Customer);
+
+			await repository.CreateTransaction(async () =>
 			{
-				if (string.IsNullOrEmpty(address.Street) ||string.IsNullOrEmpty(address.City) ||string.IsNullOrEmpty(address.PostalCode))
+				var resCustomer = await repository.CreateCustomerAsync(customer, ct);
+				await repository.SaveChangesAsync(ct);
+				if (resCustomer == null)
+					throw new ExceptionHandlerBuisiness("Errore durante la creazione del cliente.", 500);
+				foreach(var address in AddressList)
 				{
-					throw new ExceptionHandler("I campi Street, City e PostalCode sono obbligatori per ogni indirizzo.", 400);
+					if (string.IsNullOrEmpty(address.Street) ||string.IsNullOrEmpty(address.City) ||string.IsNullOrEmpty(address.PostalCode))
+					{
+						throw new ExceptionHandlerBuisiness("I campi Street, City e PostalCode sono obbligatori per ogni indirizzo.", 400);
+					}
+					Address addressModel = _mapper.Map<Address>(address);
+					addressModel.CustomerId = resCustomer.Id;
+					var createdAddress =await repository.CreateAddressAsync(addressModel, ct);
+					await repository.SaveChangesAsync(ct);
+					if (createdAddress == null)
+						throw new ExceptionHandlerBuisiness("Errore durante la creazione di un indirizzo.", 500);
 				}
-				var createdAddress =await repository.CreateAddressAsync(address.Street, address.City, address.PostalCode, address.Country, resCustomer.Id, ct);
-				if (createdAddress == null)
-					throw new ExceptionHandler("Errore durante la creazione di un indirizzo.", 500);
-			}
-			await repository.SaveChangesAsync(ct);
+				logger.LogInformation("Cliente creato con Id: {CustomerId}", resCustomer.Id);
+
+			});
+
 
 		}
-
-		public async Task CreateInvoiceAsync(SellingInvoiceDto? invoice, CancellationToken ct = default)
-		{
-			if (invoice == null) throw new ExceptionHandler("Invoice mancante", 400);
-			var res = await repository.GetCustomerById(invoice.CustomerId, ct);
-			if (res == null) throw new ExceptionHandler("Customer non esistente", invoice.CustomerId, 404);
-			List<ProductDto>? Products = invoice.ProductList;
-			if (Products == null || Products.Count == 0) throw new ExceptionHandler("Nessun prodotto da aggiungere in fattura", invoice.CustomerId, 400);
-			Address? Address =await repository.GetAddressById(invoice.AddressId, ct);
-			if (Address == null) throw new ExceptionHandler("Indirizzo non esistente", invoice.AddressId, 404);
-			if(Address.Id != invoice.Id) throw new ExceptionHandler("Indirizzo non appartenente al cliente intestatario della fattura", invoice.AddressId, 400);
-			var newInvoice = await repository.CreateInvoiceAsync(invoice.Date, invoice.CustomerId, Address.Id, ct);
-			await repository.SaveChangesAsync(ct);
-			foreach (var product in Products)
-			{
-				if (product.Pieces <= 0)
-					throw new ExceptionHandler("Numero di pezzi non valido", product, 400);
-
-				if (product.Price < 0)
-					throw new ExceptionHandler("Prezzo non valido", product, 400);
-
-				if (product.VAT != 4 && product.VAT != 10 && product.VAT != 22)
-					throw new ExceptionHandler("IVA non valida", product, 400);
-				var productCreated = await repository.CreateProductAsync(product.Pieces, product.Price, product.VAT, newInvoice.Id, ct);
-			}
-			await repository.SaveChangesAsync(ct);
-		}
-
 		public async Task DeleteCustomerAsync(int CustomerId, CancellationToken ct = default)
 		{
 			var Invoices = await repository.GetAllInvoiceByCustomerId(CustomerId, ct);
@@ -69,9 +53,9 @@ namespace CustomerManager.Business
 			{
 				var mostRecentInvoice = Invoices.OrderByDescending(n => n.Date).First();
 				DateTime CurrentDate = DateTime.Now;
-				bool SpentOver10Years = mostRecentInvoice.Date.AddYears(10) >= CurrentDate;
+				bool SpentOver10Years = mostRecentInvoice.Date.AddYears(10) <= CurrentDate;
 				if (!SpentOver10Years)
-					throw new ExceptionHandler("Non è possibile cancellare il cliente: fatture troppo recenti", CustomerId, 400);
+					throw new ExceptionHandlerBuisiness("Non è possibile cancellare il cliente: fatture troppo recenti", CustomerId, 400);
 
 				foreach (var invoice in Invoices)
 				{
@@ -86,140 +70,184 @@ namespace CustomerManager.Business
 			}
 			await repository.DeleteCustomerAsync(CustomerId, ct);
 			await repository.SaveChangesAsync(ct);
+			logger.LogInformation("Cliente con Id {CustomerId} eliminato con successo", CustomerId);
+		}
+		public async Task<ReadCustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default)
+		{
+			var customerModel = await repository.GetCustomerById(CustomerId, ct);
+			if (customerModel == null)
+				throw new ExceptionHandlerBuisiness($"Customer con Id {CustomerId} non trovato", CustomerId, 404);
+			var Addresses = await repository.GetAllAddressesByCustomerId(CustomerId, ct);
+			if (Addresses == null)
+				throw new ExceptionHandlerBuisiness($"Indirizzi per il Customer {CustomerId} non trovati", CustomerId, 404);
+			List<ReadAndUpdateAddressDto> Address = _mapper.Map<List<ReadAndUpdateAddressDto>>(Addresses);
+			ReadCustomerDto customerDto = _mapper.Map<ReadCustomerDto>(customerModel);
+			logger.LogInformation("Customer con Id {CustomerId} recuperato con successo", CustomerId);
+			return customerDto;
+		}
+		public async Task UpdateCustomerAsync(UpdateCustomerDto Customer, CancellationToken ct = default)
+		{
+			var addingAddress = Customer.AddingAddress;
+			Customer.AddingAddress = new List<CreateAddressDto>();
+			Customer customer = _mapper.Map<Customer>(Customer);
+			IEnumerable<Address> NewAddress = _mapper.Map<IEnumerable<Address>>(addingAddress);
+			foreach (var item in NewAddress)
+			{
+				item.CustomerId = customer.Id;
+			}
+
+			await repository.CreateTransaction(async () =>
+			{
+				await repository.DeleteAddressListAsync(Customer.RemovingAddress, Customer.Id, ct);
+				await repository.CreateListOfAddressesAsync(NewAddress, ct);
+				await repository.UpdateCustomerAsync(customer, ct);
+				await repository.SaveChangesAsync(ct);
+			});
+			logger.LogInformation("Customer con Id {CustomerId} aggiornato con successo", Customer.Id);
 		}
 
+		#endregion
+		
+		
+		#region Invoice
+		public async Task CreateInvoiceAsync(CreateSellingInvoiceDto invoiceDto, CancellationToken ct = default)
+		{
+			var res = await repository.GetCustomerById(invoiceDto.CustomerId, ct);
+			IEnumerable<CreateInvoiceProductsDto>? Products = new List<CreateInvoiceProductsDto>();
+			Products = invoiceDto.ProductList;
+			Address? Address =await repository.GetAddressById(invoiceDto.AddressId, ct);
+			if (res == null) 
+				throw new ExceptionHandlerBuisiness("Customer non esistente", invoiceDto.CustomerId, 404);
+			if ( !Products.Any() ) 
+				throw new ExceptionHandlerBuisiness("Nessun prodotto da aggiungere in fattura", invoiceDto.CustomerId, 400);
+			if(Address == null || Address.CustomerId != invoiceDto.CustomerId) 
+				throw new ExceptionHandlerBuisiness("Indirizzo non appartenente al cliente intestatario della fattura", invoiceDto.AddressId, 400);
+
+
+
+			await repository.CreateTransaction(async () =>
+			{
+				List<CreateInvoiceProductHelper> InvoiceProductsHelperList = new();
+				foreach (var product in Products)
+				{
+					var productResult = await repository.GetProductByIdAsync(product.ProductId, ct);
+					if (productResult == null)
+						throw new ExceptionHandlerBuisiness($"Prodotto con Id {product.ProductId} non trovato", product.ProductId, 404);
+					CreateInvoiceProductHelper createInvoiceProductHelper = new()
+					{
+						ProductId = productResult.Id,
+						Pieces = product.Pieces,
+						Price = productResult.Price,
+						VAT = productResult.VAT
+					};
+					InvoiceProductsHelperList.Add(createInvoiceProductHelper);
+					if (productResult.AvailablePieces - createInvoiceProductHelper.Pieces < 0)
+					{
+						throw new ExceptionHandlerBuisiness("Non e possibile creare una fattura quando la disponibilita dei prodotti e pari o inferiore a 0", 403);
+					}
+					productResult.AvailablePieces -= product.Pieces;
+					await repository.UpdateProductAsync(productResult, ct);
+					await repository.SaveChangesAsync(ct);
+				}
+				Invoice model = _mapper.Map<Invoice>(invoiceDto);
+				model.ProductList = new List<InvoiceProducts>();
+				var newInvoice = await repository.CreateInvoiceAsync(model, ct);
+
+				await repository.SaveChangesAsync(ct);
+				foreach (var product in InvoiceProductsHelperList)
+				{
+					if (product.Pieces <= 0)
+						throw new ExceptionHandlerBuisiness("Numero di pezzi non valido", product, 400);
+
+					InvoiceProducts productModel = _mapper.Map<InvoiceProducts>(product);
+					productModel.InvoiceId = newInvoice.Id;
+					// Verifico che il prodotto esista
+					var productCreated = await repository.CreateInvoiceProductAsync(productModel, ct);
+					// aggiungere transactionalOutbox
+				}
+					await repository.SaveChangesAsync(ct);
+				logger.LogInformation("Fattura creata con Id: {InvoiceId}", newInvoice.Id);
+			});
+
+		}
 		public async Task DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 		{
 			// se la fattura è piu vecchia di 10 anni
 			var Invoice = await repository.GetInvoiceById(InvoiceId, ct);
 			if (Invoice == null)
-				throw new ExceptionHandler($"Fattura con Id {InvoiceId} non trovata", InvoiceId, 404); DateTime CurrentDate = DateTime.Now;
-			bool SpentOver10Years = Invoice.Date.AddYears(10) >= CurrentDate;
+				throw new ExceptionHandlerBuisiness($"Fattura con Id {InvoiceId} non trovata", InvoiceId, 404); DateTime CurrentDate = DateTime.Now;
+			bool SpentOver10Years = Invoice.Date.AddYears(10) <= CurrentDate;
 			if (!SpentOver10Years)
-				throw new ExceptionHandler("Non è possibile la fattura: fatture troppo recenti", InvoiceId, 400);
+				throw new ExceptionHandlerBuisiness("Non è possibile la fattura: fatture troppo recenti", InvoiceId, 400);
 			// procediamo con l'e liminazione
-			await repository.DeleteProductsByInvoiceIdAsync(InvoiceId, ct);
-			await repository.DeleteInvoiceAsync(InvoiceId, ct);
-			await repository.SaveChangesAsync(ct);
+			await repository.CreateTransaction(async () =>
+			{
+				
+				await repository.DeleteInvoiceProductsByInvoiceIdAsync(InvoiceId, ct);
+				await repository.SaveChangesAsync(ct);
+				await repository.DeleteInvoiceAsync(InvoiceId, ct);
+				await repository.SaveChangesAsync(ct);
 
+			});
+			logger.LogInformation("Fattura con Id {InvoiceId} eliminata con successo", InvoiceId);
 		}
-
-		public async Task<CustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default)
+		public async Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 		{
-			var Customer = await repository.GetCustomerById(CustomerId, ct);
-			if (Customer == null)
-				throw new ExceptionHandler($"Customer con Id {CustomerId} non trovato", CustomerId, 404);
-			var Addresses = await repository.GetAllAddressesByCustomerId(CustomerId, ct);
-			if (Addresses == null)
-				throw new ExceptionHandler($"Indirizzi per il Customer {CustomerId} non trovati", CustomerId, 404);
-			List<AddressDto> AddressDtoList = new();
-			foreach(var address in Addresses)
-			{
-				if (address == null)
-					throw new ExceptionHandler("Indirizzo nullo rilevato nella lista indirizzi", null, 500);
-				AddressDto addressDto = new()
-				{
-					Id = address.Id,
-					Street = address.Street,
-					City = address.City,
-					PostalCode = address.PostalCode,
-					Country = address.Country
-				};
-				AddressDtoList.Add(addressDto);
-			}
-			CustomerDto customerDto = new()
-			{
-				Id = Customer.Id,
-				Email = Customer.Email,
-				Phone = Customer.Phone,
-				CompanyName = Customer.CompanyName,
-				VATNumber = Customer.VATNumber,
-				TaxCode = Customer.TaxCode,
-				CertifiedEmail = Customer.CertifiedEmail,
-				Address = AddressDtoList
-			};
-			return customerDto;
-		}
-
-		public async Task<SellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
-		{
-			var res = await repository.GetInvoiceById(InvoiceId, ct);
-			if (res == null)
-				throw new ExceptionHandler($"fattura con Id {InvoiceId} non trovata", InvoiceId, 404);
-			var resAddress = await repository.GetAddressById(res.AddressId, ct);
-			if (resAddress == null)
-				throw new ExceptionHandler($"Indirizzo con Id {res.AddressId} associato alla fattura non trovato", res.AddressId, 404);
-			var products = await repository.GetAllProductByInvoiceId(res.Id, ct);
-			if (products == null || !products.Any())
-				throw new ExceptionHandler($"Nessun prodotto trovato per la fattura {res.Id}", res.Id, 404);
-			AddressDto Address = new()
-			{
-				Id = resAddress.Id,
-				Street = resAddress.Street,
-				City = resAddress.PostalCode,
-				PostalCode = resAddress.PostalCode,
-				Country = resAddress.Country
-			};
-			List<ProductDto> ProductsDtoList = new();
-			foreach(var product in products)
-			{
-				if (product == null)
-					throw new ExceptionHandler("Prodotto nullo nella fattura", null, 500);
-				ProductDto productDto = new()
-				{
-					Pieces = product.Pieces,
-					Price = product.Price,
-					VAT = product.VAT
-				};
-				ProductsDtoList.Add(productDto);
-			}
-			SellingInvoiceDto Invoice = new()
-			{
-				Date = res.Date,
-				CustomerId = res.CustomerId,
-				AddressId = Address.Id,
-				Address = Address,
-				ProductList = ProductsDtoList
-			};
+			var res = await repository.GetInvoiceByIdAsync(InvoiceId, ct);
+			if (res == null) throw new ExceptionHandlerBuisiness("il valore passato alla funzione non è associato a nessun identificativo di fattura", 404);
+			logger.LogInformation("Customer is {State}", res.Customer != null ? "present" : "null");
+			logger.LogInformation("Address is {State}", res.Address != null ? "present" : "null");
+			logger.LogInformation("ProductList has {Count} items", res.ProductList?.Count() ?? 0);
+			var Invoice = _mapper.Map<ReadSellingInvoiceDto>(res);
+			logger.LogInformation("Fattura con Id {InvoiceId} recuperata con successo", Invoice.Id);
 			return Invoice;
-
 		}
 
-		public async Task UpdateCustomerAsync(CustomerDto Customer, List<AddressDto> NewAddress, List<int> AddresToRemove, CancellationToken ct = default)
+		#endregion
+
+		#region Product
+		public async Task CreateProductAsync(CreateProductDto productDto, CancellationToken ct = default)
 		{
-			if (Customer == null)
-				throw new ExceptionHandler("Customer non può essere null", 400);
-			var existingCustomer = await repository.GetCustomerById(Customer.Id, ct);
-			if (existingCustomer == null)
-				throw new ExceptionHandler($"Customer con Id {Customer.Id} non trovato", Customer.Id, 404);
-
-			if (AddresToRemove.Count > 0)
-			{
-				foreach(var removeId in AddresToRemove)
-				{
-					var addressToRemove = await repository.GetAddressById(removeId, ct);
-					if (addressToRemove == null)
-						throw new ExceptionHandler($"Indirizzo con Id {removeId} da rimuovere non trovato", removeId, 404);
-
-					await repository.DeleteAddressAsync(removeId, ct);
-
-				}
-
-			}
-			if(NewAddress.Count > 0)
-			{
-				foreach (var add in NewAddress)
-				{
-					if (string.IsNullOrEmpty(add.Street) || string.IsNullOrEmpty(add.City))
-						throw new ExceptionHandler("Indirizzo non valido: Street e City sono obbligatori", add, 400);
-
-					await repository.CreateAddressAsync(add.Street, add.City, add.PostalCode, add.Country, Customer.Id, ct);
-				}
-			}
-
-			await repository.UpdateCustomerAsync(Customer.Id, Customer.CompanyName, Customer.VATNumber, Customer.TaxCode, Customer.CertifiedEmail, Customer.Email, Customer.Phone, ct);
+			if (productDto.Price < 0)
+				throw new ExceptionHandlerBuisiness("Prezzo non valido", productDto, 400);
+			if (productDto.VAT != 4 && productDto.VAT != 10 && productDto.VAT != 22)
+				throw new ExceptionHandlerBuisiness("IVA non valida", productDto, 400);
+			Product model = _mapper.Map<Product>(productDto);
+			var res = await repository.CreateProductAsync(model, ct);
 			await repository.SaveChangesAsync(ct);
-
+			logger.LogInformation("Prodotto creato con Id: {ProductId}", res.Id);
 		}
+
+		public async Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default)
+		{
+			var result = await  repository.GetProductByIdAsync(productId, ct);
+			if(result == null)
+				throw new ExceptionHandlerBuisiness($"Prodotto con Id {productId} non trovato", productId, 404);
+			ReadAndUpdateProductDto productDto = _mapper.Map<ReadAndUpdateProductDto>(result);
+			logger.LogInformation("Prodotto con Id {ProductId} recuperato con successo", productId);
+			return productDto;
+		}
+
+		public async Task UpdateProductAsync(ReadAndUpdateProductDto product, CancellationToken ct = default)
+		{
+			Product model = _mapper.Map<Product>(product);
+
+			var result = await repository.UpdateProductAsync(model, ct);
+			logger.LogInformation("Prodotto con Id {ProductId} aggiornato con successo", result.Id);
+			await repository.SaveChangesAsync(ct);
+		}
+
+		public async Task DeleteProductAsync(int productId, CancellationToken ct = default)
+		{
+			bool existanceOfInvoiceProducts = await repository.CheckForInvoiceProductFromProductId(productId, ct);
+			if (existanceOfInvoiceProducts == true) throw new ExceptionHandlerBuisiness("Esistono prodotti inseriti in fatture che non possono essere eliminate", 403);
+
+			await repository.DeleteProductAsync(productId, ct);
+			await repository.SaveChangesAsync(ct);
+			logger.LogInformation("Eliminazione del prodotto con Id {ProductId}", productId);
+		}
+
+
+		#endregion
 	}
 }

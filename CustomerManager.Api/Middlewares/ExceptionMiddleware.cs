@@ -1,4 +1,5 @@
 ﻿using CustomerManager.Business;
+using CustomerManager.Repository;
 using System.Text.Json;
 
 namespace CustomerManager.Api.Middlewares
@@ -12,17 +13,43 @@ namespace CustomerManager.Api.Middlewares
 		{
 			try
 			{
-				await _next(context); // passa al prossimo middleware
+				await _next(context); 
 			}
-			catch (ExceptionHandler ex)
+			catch (ExceptionHandlerBuisiness ex)
 			{
-				_logger.LogError(ex, "Errore controllato");
+				_logger.LogError(ex, "Errore proveniente dal layer di Buisiness");
 				context.Response.StatusCode = ex.StatusCode;
 				context.Response.ContentType = "application/json";
-
+				if(ex.InvolvedElement != null)
+				{
+					context.Response.Headers.Append("Involved-Element", JsonSerializer.Serialize(ex.InvolvedElement));
+				}
 				var result = JsonSerializer.Serialize(new
 				{
-					error = ex.Message
+					handler = "ExceptionHandlerBuisiness",
+					source = ex.Source,
+					message =  ex.Message,
+					stackTrace = ex.StackTrace
+
+				});
+
+				await context.Response.WriteAsync(result);
+			}
+			catch (ExceptionHandlerRepository ex)
+			{
+				_logger.LogError(ex, "Errore proveniente dal layer di Repository");
+				context.Response.StatusCode = ex.StatusCode;
+				context.Response.ContentType = "application/json";
+				if (ex.InvolvedElement != null)
+				{
+					context.Response.Headers.Append("Involved-Element", JsonSerializer.Serialize(ex.InvolvedElement));
+				}
+				var result = JsonSerializer.Serialize(new
+				{
+					handler = "ExceptionHandlerRepository",
+					source = ex.Source,
+					message = ex.Message,
+					stackTrace = ex.StackTrace
 				});
 
 				await context.Response.WriteAsync(result);
@@ -35,7 +62,8 @@ namespace CustomerManager.Api.Middlewares
 
 				var result = JsonSerializer.Serialize(new
 				{
-					error = "Errore interno del server"
+					error = "Errore interno del server",
+					details = ex.ToString()
 				});
 
 				await context.Response.WriteAsync(result);

@@ -1,17 +1,27 @@
 ﻿using CustomerManager.Shared;
+using CustomerManager.Shared.DTO;
 
 namespace CustomerManager.Business.Abstraction
 {
     public interface IBusiness
     {
-		public Task CreateInvoiceAsync(SellingInvoiceDto? invoice, CancellationToken ct = default);
+		public Task CreateInvoiceAsync(CreateSellingInvoiceDto invoice, CancellationToken ct = default);
 		public Task DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default);
-		public Task<SellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default);
-		public Task CreateCustomerAsync(CustomerDto Customer, List<AddressDto> AddressList, CancellationToken ct = default);
-		public Task DeleteCustomerAsync(int CustomerId, CancellationToken ct = default);
-		public Task<CustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default);
-		public Task UpdateCustomerAsync(CustomerDto Customer, List<AddressDto> NewAddress, List<int> AddresToRemove, CancellationToken ct = default);
+		public Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default);
 
-			 // ogni volta che faccio una get sia per invoice che per Customer modifico eventualmente lo stato dei due elementi verificando determinate variabili
+
+
+		public Task CreateCustomerAsync(CreateCustomerDto Customer, CancellationToken ct = default);
+		public Task DeleteCustomerAsync(int CustomerId, CancellationToken ct = default);
+		public Task<ReadCustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default);
+		public Task UpdateCustomerAsync(UpdateCustomerDto Customer,  CancellationToken ct = default);
+
+
+		public Task CreateProductAsync(CreateProductDto productDto, CancellationToken ct = default);
+		public Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default);
+		public Task UpdateProductAsync(ReadAndUpdateProductDto product, CancellationToken ct = default);
+		public Task DeleteProductAsync (int productId, CancellationToken ct = default);	
+
+		// ogni volta che faccio una get sia per invoice che per Customer modifico eventualmente lo stato dei due elementi verificando determinate variabili
 	}
 }

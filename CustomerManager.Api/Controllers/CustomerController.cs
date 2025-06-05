@@ -1,5 +1,6 @@
 ﻿using CustomerManager.Business.Abstraction;
 using CustomerManager.Shared;
+using CustomerManager.Shared.DTO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,27 +16,24 @@ public class CustomerController(IBusiness business, ILogger<CustomerController> 
 
 
 	[HttpPost(Name = "CreateCustomer")]
-	public async Task<ActionResult> CreateCustomer(CustomerDto customer)
+	public async Task<ActionResult> CreateCustomer(CreateCustomerDto customer)
     {
-
-		await _business.CreateCustomerAsync(customer, customer.AddingAddress);
+		await _business.CreateCustomerAsync(customer);
 		return Ok();
-
-
     }
 
 	[HttpGet(Name = "ReadCustomer")]
-	public async Task<ActionResult> GetCustomer(int customerId)
+	public async Task<ActionResult<ReadCustomerDto>> GetCustomer( int customerId)
     {
-        CustomerDto? customer = await _business.GetCustomerAsync(customerId);
+        ReadCustomerDto? customer = await _business.GetCustomerAsync(customerId);
 		if (customer == null) return NotFound("Customer non trovato");
         return Ok(customer);
     }
 
 	[HttpPut(Name = "UpdateCustomer")]
-	public async Task<ActionResult> UpdateCustomer(CustomerDto customer)
+	public async Task<ActionResult> UpdateCustomer(UpdateCustomerDto customer)
 	{
-		await _business.UpdateCustomerAsync(customer, customer.AddingAddress, customer.RemovingAddress);
+		await _business.UpdateCustomerAsync(customer);
 		return Ok();
 	}
 
