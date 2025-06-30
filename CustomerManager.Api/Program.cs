@@ -4,6 +4,9 @@ using CustomerManager.Repository;
 using CustomerManager.Repository.Abstraction;
 using Microsoft.EntityFrameworkCore;
 using CustomerManager.Api.Middlewares;
+using Utility.Kafka.DependencyInjection;
+using CustomerManager.Business.Kafka;
+using CustomerManager.Business.Kafka.MessageHandler;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +18,7 @@ builder.Services.AddDbContext<ClientsDbContext>(options => options.UseSqlServer(
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<IBusiness, Business>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
+builder.Services.AddKafkaConsumer<KafkaTopicInput, MessageHandlerFactory>(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

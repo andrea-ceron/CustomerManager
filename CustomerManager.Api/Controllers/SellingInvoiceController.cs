@@ -23,7 +23,7 @@ public class SellingInvoiceController(IBusiness business, ILogger<SellingInvoice
 
 	}
 
-	[HttpGet(Name = "GetInvoice")]
+	[HttpGet(Name = "ReadInvoice")]
 	public async Task<ActionResult> ReadInvoice(int invoiceId)
 	{
 		var result = await _business.GetInvoiceAsync(invoiceId);

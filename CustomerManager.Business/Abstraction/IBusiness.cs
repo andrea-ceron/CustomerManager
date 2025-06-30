@@ -17,10 +17,7 @@ namespace CustomerManager.Business.Abstraction
 		public Task UpdateCustomerAsync(UpdateCustomerDto Customer,  CancellationToken ct = default);
 
 
-		public Task CreateProductAsync(CreateProductDto productDto, CancellationToken ct = default);
 		public Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default);
-		public Task UpdateProductAsync(ReadAndUpdateProductDto product, CancellationToken ct = default);
-		public Task DeleteProductAsync (int productId, CancellationToken ct = default);	
 
 		// ogni volta che faccio una get sia per invoice che per Customer modifico eventualmente lo stato dei due elementi verificando determinate variabili
 	}

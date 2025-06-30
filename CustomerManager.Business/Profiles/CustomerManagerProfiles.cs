@@ -3,6 +3,7 @@ using CustomerManager.Business.DTOHelper;
 using CustomerManager.Repository.Model;
 using CustomerManager.Shared.DTO;
 using System.Diagnostics.CodeAnalysis;
+using StockManager.Shared.DTO;
 
 
 namespace CustomerManager.Business.Profiles;
@@ -44,6 +45,7 @@ public class InputFileProfile : Profile
 		CreateMap<CreateProductDto, Product>();
 		CreateMap<Product, ReadAndUpdateProductDto>();
 		CreateMap<ReadAndUpdateProductDto, Product>();
+		CreateMap<EndProductDtoForKafka, Product>();
 
 	}
 }
