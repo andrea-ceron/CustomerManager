@@ -19,3 +19,10 @@ public class CreateProductDto
 	public decimal Price { get; set; }
 	public int VAT { get; set; }
 }
+
+public class BuildEndProductDto
+{
+	public int Id { get; set; }
+	public int elementsToBuild { get; set; }
+
+}

@@ -18,6 +18,7 @@ namespace CustomerManager.Business.Abstraction
 
 
 		public Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default);
+		public Task BuildProduct(IEnumerable<BuildEndProductDto> listOfEndproductsToBuild, CancellationToken ct = default);
 
 		// ogni volta che faccio una get sia per invoice che per Customer modifico eventualmente lo stato dei due elementi verificando determinate variabili
 	}

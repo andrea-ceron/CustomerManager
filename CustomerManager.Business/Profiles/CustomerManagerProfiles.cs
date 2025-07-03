@@ -46,6 +46,8 @@ public class InputFileProfile : Profile
 		CreateMap<Product, ReadAndUpdateProductDto>();
 		CreateMap<ReadAndUpdateProductDto, Product>();
 		CreateMap<EndProductDtoForKafka, Product>();
-
+		CreateMap<BuildEndProductDto, CreateProductionProcessDto>()
+				   .ForMember(dest => dest.EndProductId, opt => opt.MapFrom(src => src.Id))
+				   .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.elementsToBuild));
 	}
 }

@@ -18,7 +18,7 @@ public interface IClientHttp
 	#endregion
 
 	#region Product
-	Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default);
+	Task<ReadAndUpdateProductDto?> GetProductAsync(int productId, CancellationToken ct = default);
 	#endregion
 
 }

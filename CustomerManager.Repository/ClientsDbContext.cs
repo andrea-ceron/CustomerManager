@@ -26,9 +26,6 @@ namespace CustomerManager.Repository
 			mb.Entity<Invoice>()
 				.Property(i => i.Id)
 				.ValueGeneratedOnAdd();
-			mb.Entity<Invoice>()
-				.Property(inv => inv.Status)
-				.HasConversion<string>();
 			mb.Entity<Invoice>().HasMany(i => i.ProductList)
 				.WithOne(p => p.Invoice)
 				.HasForeignKey(p => p.InvoiceId);

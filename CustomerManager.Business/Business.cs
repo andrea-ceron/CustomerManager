@@ -8,11 +8,12 @@ using CustomerManager.Shared.DTO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Logging;
+using StockManager.Shared.DTO;
 using System.Security.Cryptography;
 
 namespace CustomerManager.Business
 {
-	public class Business(IRepository repository, ILogger<Business> logger, IMapper _mapper) : IBusiness
+	public class Business(StockManager.ClientHttp.Abstractions.IClientHttp stockManagerClientHttp, IRepository repository, ILogger<Business> logger, IMapper _mapper) : IBusiness
 	{
 		#region Customer
 		public async Task CreateCustomerAsync(CreateCustomerDto Customer, CancellationToken ct = default)
@@ -123,7 +124,17 @@ namespace CustomerManager.Business
 			if(Address == null || Address.CustomerId != invoiceDto.CustomerId) 
 				throw new ExceptionHandlerBuisiness("Indirizzo non appartenente al cliente intestatario della fattura", invoiceDto.AddressId, 400);
 
-
+			// Creo una spedizione per la fattura chiamando la funzione CreateShipment su StockManager 
+			CreateShipmentDto newShipment = new()
+			{
+				DestinationAddress = string.Join(", ", Address.Street, Address.City, Address.PostalCode, Address.Country), 
+				Items = invoiceDto.ProductList.Select(p => new CreateShippingItemsDto
+				{
+					EndProductId = p.ProductId,
+					Quantity = p.Pieces
+				}).ToList() 
+			};
+			await stockManagerClientHttp.CreateShipment(newShipment, ct);
 
 			await repository.CreateTransaction(async () =>
 			{
@@ -206,18 +217,7 @@ namespace CustomerManager.Business
 		#endregion
 
 		#region Product
-		public async Task CreateProductAsync(CreateProductDto productDto, CancellationToken ct = default)
-		{
-			if (productDto.Price < 0)
-				throw new ExceptionHandlerBuisiness("Prezzo non valido", productDto, 400);
-			if (productDto.VAT != 4 && productDto.VAT != 10 && productDto.VAT != 22)
-				throw new ExceptionHandlerBuisiness("IVA non valida", productDto, 400);
-			Product model = _mapper.Map<Product>(productDto);
-			var res = await repository.CreateProductAsync(model, ct);
-			await repository.SaveChangesAsync(ct);
-			logger.LogInformation("Prodotto creato con Id: {ProductId}", res.Id);
-		}
-
+	
 		public async Task<ReadAndUpdateProductDto> GetProductAsync(int productId, CancellationToken ct = default)
 		{
 			var result = await  repository.GetProductByIdAsync(productId, ct);
@@ -228,25 +228,33 @@ namespace CustomerManager.Business
 			return productDto;
 		}
 
-		public async Task UpdateProductAsync(ReadAndUpdateProductDto product, CancellationToken ct = default)
+		public async Task BuildProduct(IEnumerable<BuildEndProductDto> listOfEndproductsToBuild, CancellationToken ct = default)
 		{
-			Product model = _mapper.Map<Product>(product);
+			// eseguo la chiamata Clienhttp riguardo alla crezione di diversi processi produttivi in base alla lunghezza della lista
+			try
+			{
+				List<CreateProductionProcessDto> stockManagerList = _mapper.Map<List<CreateProductionProcessDto>>(listOfEndproductsToBuild);
+				await stockManagerClientHttp.CreateProductionProcess(stockManagerList, ct);
+			}
+			catch(Exception ex)
+			{
+				throw new ExceptionHandlerBuisiness("Errore durante la creazione dei processi produttivi", ex, 500);
+			}
 
-			var result = await repository.UpdateProductAsync(model, ct);
-			logger.LogInformation("Prodotto con Id {ProductId} aggiornato con successo", result.Id);
-			await repository.SaveChangesAsync(ct);
+			// se il risultato non restituisce errore allora inserisco all interno del model Product le quantita aggiunte
+			await repository.CreateTransaction(async () => CreateMap<BuildEndProductDto, CreateProductionProcessDto>()
+            .ForMember(dest => dest.EndProductId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.elementsToBuild));
+			{
+				foreach(var item in listOfEndproductsToBuild)
+				{
+					var endProduct = await repository.GetProductByIdAsync(item.Id, ct);
+					endProduct.AvailablePieces += item.elementsToBuild;
+				}
+				await repository.SaveChangesAsync(ct);
+
+			});
 		}
-
-		public async Task DeleteProductAsync(int productId, CancellationToken ct = default)
-		{
-			bool existanceOfInvoiceProducts = await repository.CheckForInvoiceProductFromProductId(productId, ct);
-			if (existanceOfInvoiceProducts == true) throw new ExceptionHandlerBuisiness("Esistono prodotti inseriti in fatture che non possono essere eliminate", 403);
-
-			await repository.DeleteProductAsync(productId, ct);
-			await repository.SaveChangesAsync(ct);
-			logger.LogInformation("Eliminazione del prodotto con Id {ProductId}", productId);
-		}
-
 
 		#endregion
 	}

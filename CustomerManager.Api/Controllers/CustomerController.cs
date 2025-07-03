@@ -41,7 +41,7 @@ public class CustomerController(IBusiness business, ILogger<CustomerController> 
 	public async Task<ActionResult> DeleteCustomer(int customerId)
 	{
 		await _business.DeleteCustomerAsync(customerId);
-		return Ok();
+		return NoContent();
 	}
 
 }

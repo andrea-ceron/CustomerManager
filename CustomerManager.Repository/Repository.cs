@@ -36,7 +36,6 @@ namespace CustomerManager.Repository
 		public async Task<Invoice?> UpdateInvoiceStatusAsync(Invoice? invoice, InvoiceStatus status, CancellationToken ct = default)
 		{
 			if (invoice == null) throw new ExceptionHandlerRepository("Invoice risulta essere nulla", 400);
-			invoice.Status = status;
 			await dbContext.Invoices.AddAsync(invoice, ct);
 			return invoice;
 		}

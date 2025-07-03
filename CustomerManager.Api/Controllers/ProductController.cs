@@ -13,9 +13,11 @@ public class ProductController(IBusiness business, ILogger<ProductController> lo
 	private readonly ILogger<ProductController> _logger = logger;
 	
 	[HttpGet(Name = "ReadProduct")]
-	public async Task<ActionResult<ReadCustomerDto>> GetProduct(int productId)
+	public async Task<ActionResult<ReadAndUpdateProductDto>> GetProduct(int productId)
 	{
 		var result = await _business.GetProductAsync(productId);
+		if (result is null)
+			return NotFound();
 		return Ok(result);
 	}
 }

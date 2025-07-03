@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Extensions.DependencyInjection;
+﻿namespace CustomerManager.ClientHttp.DI;
 
 public class CustomerManagerClientOption
 {
