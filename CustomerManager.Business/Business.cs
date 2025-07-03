@@ -242,9 +242,7 @@ namespace CustomerManager.Business
 			}
 
 			// se il risultato non restituisce errore allora inserisco all interno del model Product le quantita aggiunte
-			await repository.CreateTransaction(async () => CreateMap<BuildEndProductDto, CreateProductionProcessDto>()
-            .ForMember(dest => dest.EndProductId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.elementsToBuild));
+			await repository.CreateTransaction(async () => 
 			{
 				foreach(var item in listOfEndproductsToBuild)
 				{
