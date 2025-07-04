@@ -7,6 +7,7 @@ using CustomerManager.Api.Middlewares;
 using Utility.Kafka.DependencyInjection;
 using CustomerManager.Business.Kafka;
 using CustomerManager.Business.Kafka.MessageHandler;
+using StockManager.ClientHttp.DI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,22 +15,23 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddDbContext<ClientsDbContext>(options => options.UseSqlServer("name=ConnectionStrings:ClientsDbContext", b =>b.MigrationsAssembly("CustomerManager.Api")));
+builder.Services.AddDbContext<ClientsDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("ClientsDbContext"), b =>b.MigrationsAssembly("CustomerManager.Api")));
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<IBusiness, Business>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddKafkaConsumer<KafkaTopicInput, MessageHandlerFactory>(builder.Configuration);
+builder.Services.AddStockManagerClientHttp(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+app.UseMiddleware<ExceptionMiddleware>();
 using (var scope = app.Services.CreateScope())
 {
 	var db = scope.ServiceProvider.GetRequiredService<ClientsDbContext>();
 	db.Database.Migrate();
 }
-app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

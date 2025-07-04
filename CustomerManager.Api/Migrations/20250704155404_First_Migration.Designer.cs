@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CustomerManager.Api.Migrations
 {
     [DbContext(typeof(ClientsDbContext))]
-    [Migration("20250520154906_First_Migration")]
+    [Migration("20250704155404_First_Migration")]
     partial class First_Migration
     {
         /// <inheritdoc />
@@ -83,10 +83,6 @@ namespace CustomerManager.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("TaxCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -117,10 +113,6 @@ namespace CustomerManager.Api.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AddressId");
@@ -130,7 +122,7 @@ namespace CustomerManager.Api.Migrations
                     b.ToTable("Invoices");
                 });
 
-            modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
+            modelBuilder.Entity("CustomerManager.Repository.Model.InvoiceProducts", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -147,12 +139,39 @@ namespace CustomerManager.Api.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("VAT")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("VAT")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("InvoiceProducts");
+                });
+
+            modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AvailablePieces")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VAT")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.ToTable("Products");
                 });
@@ -185,15 +204,23 @@ namespace CustomerManager.Api.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
+            modelBuilder.Entity("CustomerManager.Repository.Model.InvoiceProducts", b =>
                 {
                     b.HasOne("CustomerManager.Repository.Model.Invoice", "Invoice")
-                        .WithMany("Products")
+                        .WithMany("ProductList")
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CustomerManager.Repository.Model.Product", "Product")
+                        .WithMany("InvoiceProduct")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Invoice");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("CustomerManager.Repository.Model.Address", b =>
@@ -210,7 +237,12 @@ namespace CustomerManager.Api.Migrations
 
             modelBuilder.Entity("CustomerManager.Repository.Model.Invoice", b =>
                 {
-                    b.Navigation("Products");
+                    b.Navigation("ProductList");
+                });
+
+            modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
+                {
+                    b.Navigation("InvoiceProduct");
                 });
 #pragma warning restore 612, 618
         }

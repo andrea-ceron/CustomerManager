@@ -12,13 +12,18 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG NUGET_USERNAME
 ARG NUGET_PASSWORD
+
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["NuGet.config", "."]
+RUN sed -i "s/%NUGET_USERNAME%/${NUGET_USERNAME}/g" NuGet.config && \
+    sed -i "s/%NUGET_PASSWORD%/${NUGET_PASSWORD}/g" NuGet.config
 COPY ["CustomerManager.Api/CustomerManager.Api.csproj", "CustomerManager.Api/"]
 COPY ["CustomerManager.Business/CustomerManager.Business.csproj", "CustomerManager.Business/"]
 COPY ["CustomerManager.Repository/CustomerManager.Repository.csproj", "CustomerManager.Repository/"]
 COPY ["CustomerManager.Shared/CustomerManager.Shared.csproj", "CustomerManager.Shared/"]
+RUN sed -i "s/__USERNAME__/${NUGET_USERNAME}/" NuGet.config && \
+    sed -i "s/__PASSWORD__/${NUGET_PASSWORD}/" NuGet.config
 RUN dotnet restore "./CustomerManager.Api/CustomerManager.Api.csproj"
 COPY . .
 WORKDIR "/src/CustomerManager.Api"
