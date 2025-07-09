@@ -16,14 +16,14 @@ public class CustomerController(IBusiness business, ILogger<CustomerController> 
 
 
 	[HttpPost(Name = "CreateCustomer")]
-	public async Task<ActionResult> CreateCustomer(CreateCustomerDto customer)
+	public async Task<ActionResult<string?>> CreateCustomer(CreateCustomerDto customer)
     {
 		await _business.CreateCustomerAsync(customer);
-		return Ok();
+		return Ok("Creazione Customer eseguita con successo ");
     }
 
 	[HttpGet(Name = "ReadCustomer")]
-	public async Task<ActionResult<ReadCustomerDto>> GetCustomer( int customerId)
+	public async Task<ActionResult<ReadCustomerDto>> ReadCustomer( int customerId)
     {
         ReadCustomerDto? customer = await _business.GetCustomerAsync(customerId);
 		if (customer == null) return NotFound("Customer non trovato");
@@ -31,17 +31,17 @@ public class CustomerController(IBusiness business, ILogger<CustomerController> 
     }
 
 	[HttpPut(Name = "UpdateCustomer")]
-	public async Task<ActionResult> UpdateCustomer(UpdateCustomerDto customer)
+	public async Task<ActionResult<string?>> UpdateCustomer(UpdateCustomerDto customer)
 	{
 		await _business.UpdateCustomerAsync(customer);
-		return Ok();
+		return Ok("Modifica Customer eseguita con successo");
 	}
 
 	[HttpDelete(Name = "DeleteCustomer")]
-	public async Task<ActionResult> DeleteCustomer(int customerId)
+	public async Task<ActionResult<string?>> DeleteCustomer(int customerId)
 	{
 		await _business.DeleteCustomerAsync(customerId);
-		return NoContent();
+		return Ok("Eliminazione Customer Eseguita con successo");
 	}
 
 }

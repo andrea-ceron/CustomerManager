@@ -154,10 +154,7 @@ namespace CustomerManager.Api.Migrations
             modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AvailablePieces")
                         .HasColumnType("int");

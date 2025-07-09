@@ -63,7 +63,8 @@ namespace CustomerManager.Api.Middlewares
 				var result = JsonSerializer.Serialize(new
 				{
 					error = "Errore interno del server",
-					details = ex.ToString()
+					message = ex.Message,
+					stackTrace = ex.StackTrace,
 				});
 
 				await context.Response.WriteAsync(result);

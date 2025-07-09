@@ -10,7 +10,7 @@ public static  class CustomerManagerClientExtensions
 	{
 		IConfigurationSection section = config.GetSection(CustomerManagerClientOption.SectionName);
 		CustomerManagerClientOption options = section.Get<CustomerManagerClientOption>() ?? new();
-		services.AddHttpClient<IClientHttp, ClientHttp>(o => {
+		services.AddHttpClient<ICustomerManagerClientHttp, CustomerManagerClientHttp>(o => {
 			o.BaseAddress = new Uri(options.BaseAddress);
 		}).ConfigurePrimaryHttpMessageHandler(_ => new HttpClientHandler
 		{

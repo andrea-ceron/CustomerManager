@@ -7,18 +7,18 @@ using System.Threading;
 
 namespace CustomerManager.ClientHttp;
 
-public class ClientHttp(HttpClient httpClient) : IClientHttp
+public class CustomerManagerClientHttp(HttpClient httpClient) : ICustomerManagerClientHttp
 {
 	#region Customer
 	public async Task<string?> CreateCustomerAsync(CreateCustomerDto? soggetto, CancellationToken cancellationToken = default)
 	{
 		var response = await httpClient.PostAsync($"/Customer/CreateCustomer", JsonContent.Create(soggetto), cancellationToken);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<string>(cancellationToken: cancellationToken);
+		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(cancellationToken);
 	}
 	public async Task<string?> DeleteCustomerAsync(int CustomerId, CancellationToken ct = default)
 	{
 		var response = await httpClient.DeleteAsync($"/Customer/DeleteCustomer?CustomerId={CustomerId}", ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<string>(cancellationToken: ct);
+		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
 	}
 	public async Task<ReadCustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default)
 	{
@@ -31,7 +31,7 @@ public class ClientHttp(HttpClient httpClient) : IClientHttp
 	public async Task<string?> UpdateCustomerAsync(UpdateCustomerDto Customer, CancellationToken ct = default)
 	{
 		var response = await httpClient.PutAsync($"/Customer/UpdateCustomer", JsonContent.Create(Customer), ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<string>(cancellationToken: ct);
+		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
 	}
 	#endregion
 
@@ -39,12 +39,12 @@ public class ClientHttp(HttpClient httpClient) : IClientHttp
 	public async Task<string?> CreateInvoiceAsync(CreateSellingInvoiceDto invoice, CancellationToken ct = default)
 	{
 		var response = await httpClient.PostAsync($"/SellingInvoice/CreateInvoice", JsonContent.Create(invoice), ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<string>(cancellationToken: ct);
+		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
 	}
 	public async  Task<string?> DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 	{
 		var response = await httpClient.DeleteAsync($"/SellingInvoice/DeleteInvoice?InvoiceId={InvoiceId}", ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<string>(cancellationToken: ct);
+		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
 	}
 	public async  Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 	{

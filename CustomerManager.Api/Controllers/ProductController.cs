@@ -13,11 +13,18 @@ public class ProductController(IBusiness business, ILogger<ProductController> lo
 	private readonly ILogger<ProductController> _logger = logger;
 	
 	[HttpGet(Name = "ReadProduct")]
-	public async Task<ActionResult<ReadAndUpdateProductDto>> GetProduct(int productId)
+	public async Task<ActionResult<ReadAndUpdateProductDto>> ReadProduct(int productId)
 	{
 		var result = await _business.GetProductAsync(productId);
 		if (result is null)
 			return NotFound();
 		return Ok(result);
+	}
+
+	[HttpPost(Name = "BuildProduct")]
+	public async Task<ActionResult<string?>> BuildProduct(IEnumerable<BuildEndProductDto> ProductsToCreate )
+	{
+		await _business.BuildProduct(ProductsToCreate);
+		return Ok("Prodotti Creati con successo");
 	}
 }

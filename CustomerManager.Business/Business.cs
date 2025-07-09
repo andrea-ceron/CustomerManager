@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Confluent.Kafka;
 using CustomerManager.Business.Abstraction;
 using CustomerManager.Business.DTOHelper;
 using CustomerManager.Repository.Abstraction;
@@ -13,7 +14,7 @@ using System.Security.Cryptography;
 
 namespace CustomerManager.Business
 {
-	public class Business(StockManager.ClientHttp.Abstractions.IClientHttp stockManagerClientHttp, IRepository repository, ILogger<Business> logger, IMapper _mapper) : IBusiness
+	public class Business(StockManager.ClientHttp.Abstractions.IStockManagerClientHttp stockManagerClientHttp, IRepository repository, ILogger<Business> logger, IMapper _mapper) : IBusiness
 	{
 		#region Customer
 		public async Task CreateCustomerAsync(CreateCustomerDto Customer, CancellationToken ct = default)
@@ -131,55 +132,61 @@ namespace CustomerManager.Business
 				Items = invoiceDto.ProductList.Select(p => new CreateShippingItemsDto
 				{
 					EndProductId = p.ProductId,
-					Quantity = p.Pieces
+					Quantity = p.Pieces,
+
 				}).ToList() 
 			};
 			await stockManagerClientHttp.CreateShipment(newShipment, ct);
 
 			await repository.CreateTransaction(async () =>
 			{
-				List<CreateInvoiceProductHelper> InvoiceProductsHelperList = new();
-				foreach (var product in Products)
-				{
-					var productResult = await repository.GetProductByIdAsync(product.ProductId, ct);
-					if (productResult == null)
-						throw new ExceptionHandlerBuisiness($"Prodotto con Id {product.ProductId} non trovato", product.ProductId, 404);
-					CreateInvoiceProductHelper createInvoiceProductHelper = new()
-					{
-						ProductId = productResult.Id,
-						Pieces = product.Pieces,
-						Price = productResult.Price,
-						VAT = productResult.VAT
-					};
-					InvoiceProductsHelperList.Add(createInvoiceProductHelper);
-					if (productResult.AvailablePieces - createInvoiceProductHelper.Pieces < 0)
-					{
-						throw new ExceptionHandlerBuisiness("Non e possibile creare una fattura quando la disponibilita dei prodotti e pari o inferiore a 0", 403);
-					}
-					productResult.AvailablePieces -= product.Pieces;
-					await repository.UpdateProductAsync(productResult, ct);
-					await repository.SaveChangesAsync(ct);
-				}
-				Invoice model = _mapper.Map<Invoice>(invoiceDto);
-				model.ProductList = new List<InvoiceProducts>();
-				var newInvoice = await repository.CreateInvoiceAsync(model, ct);
-
-				await repository.SaveChangesAsync(ct);
-				foreach (var product in InvoiceProductsHelperList)
-				{
-					if (product.Pieces <= 0)
-						throw new ExceptionHandlerBuisiness("Numero di pezzi non valido", product, 400);
-
-					InvoiceProducts productModel = _mapper.Map<InvoiceProducts>(product);
-					productModel.InvoiceId = newInvoice.Id;
-					// Verifico che il prodotto esista
-					var productCreated = await repository.CreateInvoiceProductAsync(productModel, ct);
-					// aggiungere transactionalOutbox
-				}
-					await repository.SaveChangesAsync(ct);
-				logger.LogInformation("Fattura creata con Id: {InvoiceId}", newInvoice.Id);
+				await CreateInvoiceHelper(Products, invoiceDto, ct);
 			});
 
+		}
+
+		public async Task CreateInvoiceHelper(IEnumerable<CreateInvoiceProductsDto>? Products, CreateSellingInvoiceDto invoiceDto, CancellationToken ct = default)
+		{
+			List<CreateInvoiceProductHelper> InvoiceProductsHelperList = new();
+			foreach (var product in Products)
+			{
+				var productResult = await repository.GetProductByIdAsync(product.ProductId, ct);
+				if (productResult == null)
+					throw new ExceptionHandlerBuisiness($"Prodotto con Id {product.ProductId} non trovato", product.ProductId, 404);
+				CreateInvoiceProductHelper createInvoiceProductHelper = new()
+				{
+					ProductId = productResult.Id,
+					Pieces = product.Pieces,
+					Price = productResult.Price * product.Pieces,
+					VAT = productResult.VAT
+				};
+				InvoiceProductsHelperList.Add(createInvoiceProductHelper);
+				if (productResult.AvailablePieces - createInvoiceProductHelper.Pieces < 0)
+				{
+					throw new ExceptionHandlerBuisiness("Non e possibile creare una fattura quando la disponibilita dei prodotti e pari o inferiore a 0", 403);
+				}
+				productResult.AvailablePieces -= product.Pieces;
+				await repository.UpdateProductAsync(productResult, ct);
+				await repository.SaveChangesAsync(ct);
+			}
+			Invoice model = _mapper.Map<Invoice>(invoiceDto);
+			model.ProductList = new List<InvoiceProducts>();
+			var newInvoice = await repository.CreateInvoiceAsync(model, ct);
+
+			await repository.SaveChangesAsync(ct);
+			foreach (var product in InvoiceProductsHelperList)
+			{
+				if (product.Pieces <= 0)
+					throw new ExceptionHandlerBuisiness("Numero di pezzi non valido", product, 400);
+
+				InvoiceProducts productModel = _mapper.Map<InvoiceProducts>(product);
+				productModel.InvoiceId = newInvoice.Id;
+				// Verifico che il prodotto esista
+				var productCreated = await repository.CreateInvoiceProductAsync(productModel, ct);
+				// aggiungere transactionalOutbox
+			}
+			await repository.SaveChangesAsync(ct);
+			logger.LogInformation("Fattura creata con Id: {InvoiceId}", newInvoice.Id);
 		}
 		public async Task DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 		{
@@ -232,13 +239,20 @@ namespace CustomerManager.Business
 		{
 			// eseguo la chiamata Clienhttp riguardo alla crezione di diversi processi produttivi in base alla lunghezza della lista
 			try
-			{
+			{   
 				List<CreateProductionProcessDto> stockManagerList = _mapper.Map<List<CreateProductionProcessDto>>(listOfEndproductsToBuild);
-				await stockManagerClientHttp.CreateProductionProcess(stockManagerList, ct);
+				foreach(var elem in stockManagerList)
+				{
+					logger.LogInformation("Invio a StockManager: {EndProductId}, Quantità: {Quantity}",
+						elem.EndProductId, elem.Quantity);
+					var result = await stockManagerClientHttp.CreateProductionProcess(elem, ct);
+					logger.LogDebug(result);
+				}
+				
 			}
 			catch(Exception ex)
 			{
-				throw new ExceptionHandlerBuisiness("Errore durante la creazione dei processi produttivi", ex, 500);
+				throw;
 			}
 
 			// se il risultato non restituisce errore allora inserisco all interno del model Product le quantita aggiunte

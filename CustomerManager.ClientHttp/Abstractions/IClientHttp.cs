@@ -2,7 +2,7 @@
 
 namespace CustomerManager.ClientHttp.Abstractions;
 
-public interface IClientHttp
+public interface ICustomerManagerClientHttp
 {
 	#region Customer
 	Task<string?> CreateCustomerAsync(CreateCustomerDto? soggetto, CancellationToken cancellationToken = default);

@@ -14,11 +14,11 @@ public class SellingInvoiceController(IBusiness business, ILogger<SellingInvoice
 	private readonly ILogger<SellingInvoiceController> _logger = logger;
 
 	[HttpPost(Name = "CreateInvoice")]
-	public async Task<ActionResult> CreateInvoice(CreateSellingInvoiceDto invoice)
+	public async Task<ActionResult<String?>> CreateInvoice(CreateSellingInvoiceDto invoice)
 	{
 
 		await _business.CreateInvoiceAsync(invoice);
-		return Ok();
+		return Ok("Invoice creata con successo");
 		
 
 	}
@@ -31,9 +31,9 @@ public class SellingInvoiceController(IBusiness business, ILogger<SellingInvoice
 	}
 
 	[HttpDelete(Name = "DeleteInvoice")]
-	public async Task<ActionResult> DeleteInvoice(int invoiceId)
+	public async Task<ActionResult<string?>> DeleteInvoice(int invoiceId)
 	{
 		await _business.DeleteInvoiceAsync(invoiceId);
-		return Ok();
+		return Ok("Invoice eliminata con successo");
 	}
 }

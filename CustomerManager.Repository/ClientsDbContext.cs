@@ -40,8 +40,8 @@ namespace CustomerManager.Repository
 
 			mb.Entity<Product>().HasKey(i => i.Id);
 			mb.Entity<Product>()
-				.Property(i => i.Id)
-				.ValueGeneratedOnAdd();
+				.Property(r => r.Id)
+				.ValueGeneratedNever();
 			mb.Entity<Product>()
 				.HasMany(i => i.InvoiceProduct)
 				.WithOne(p => p.Product)

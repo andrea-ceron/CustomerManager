@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CustomerManager.Api.Migrations
 {
     [DbContext(typeof(ClientsDbContext))]
-    [Migration("20250704155404_First_Migration")]
-    partial class First_Migration
+    [Migration("20250708144427_first_migration")]
+    partial class first_migration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -157,10 +157,7 @@ namespace CustomerManager.Api.Migrations
             modelBuilder.Entity("CustomerManager.Repository.Model.Product", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AvailablePieces")
                         .HasColumnType("int");
