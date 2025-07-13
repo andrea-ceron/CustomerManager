@@ -11,8 +11,9 @@ namespace CustomerManager.Business.Kafka.MessageHandler;
 
 public abstract class AbstractMessageHandler<TMessageDto, TDomainDto>
 	(ErrorManagerMiddleware errorManager, IMapper map)
-	: OperationMessageHandlerBase<TMessageDto>(errorManager)
+	: OperationMessageHandlerBase<TMessageDto, TDomainDto>(errorManager)
 	where TMessageDto : class
+	where TDomainDto : class
 {
 	protected async  override Task DeleteAsync(TMessageDto messageDto, CancellationToken cancellationToken = default)
 	{
@@ -28,8 +29,24 @@ public abstract class AbstractMessageHandler<TMessageDto, TDomainDto>
 	{
 		await UpdateDto(map.Map<TDomainDto>(messageDto), cancellationToken);
 	}
+	protected override async Task CompensationDeleteAsync(TMessageDto messageDto, CancellationToken cancellationToken = default)
+	{
+		await DeleteDto(map.Map<TDomainDto>(messageDto), cancellationToken);
+	}
+
+	protected override async Task CompensationInsertAsync(TMessageDto messageDto, CancellationToken cancellationToken = default)
+	{
+		await InsertDto(map.Map<TDomainDto>(messageDto), cancellationToken);
+	}
+
+	protected override async Task CompensationUpdateAsync(TMessageDto messageDto, CancellationToken cancellationToken = default)
+	{
+		await UpdateDto(map.Map<TDomainDto>(messageDto), cancellationToken);
+	}
 	protected abstract Task InsertDto(TDomainDto? domainDto, CancellationToken ct = default);
 	protected abstract Task UpdateDto(TDomainDto? messageDto, CancellationToken ct = default);
 	protected abstract Task DeleteDto(TDomainDto? messageDto, CancellationToken ct = default);
-
+	protected abstract Task CompensationInsertDto(TDomainDto? domainDto, CancellationToken ct = default);
+	protected abstract Task CompensationUpdateDto(TDomainDto? messageDto, CancellationToken ct = default);
+	protected abstract Task CompensationDeleteDeleteDto(TDomainDto? messageDto, CancellationToken ct = default);
 }

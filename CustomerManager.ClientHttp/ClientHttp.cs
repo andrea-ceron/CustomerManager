@@ -13,12 +13,22 @@ public class CustomerManagerClientHttp(HttpClient httpClient) : ICustomerManager
 	public async Task<string?> CreateCustomerAsync(CreateCustomerDto? soggetto, CancellationToken cancellationToken = default)
 	{
 		var response = await httpClient.PostAsync($"/Customer/CreateCustomer", JsonContent.Create(soggetto), cancellationToken);
-		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(cancellationToken);
+		var content = await response.Content.ReadAsStringAsync(cancellationToken);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	public async Task<string?> DeleteCustomerAsync(int CustomerId, CancellationToken ct = default)
 	{
 		var response = await httpClient.DeleteAsync($"/Customer/DeleteCustomer?CustomerId={CustomerId}", ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
+		var content =  await response.Content.ReadAsStringAsync(ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	public async Task<ReadCustomerDto?> GetCustomerAsync(int CustomerId, CancellationToken ct = default)
 	{
@@ -26,25 +36,42 @@ public class CustomerManagerClientHttp(HttpClient httpClient) : ICustomerManager
 			{ "customerId", CustomerId.ToString(CultureInfo.InvariantCulture) }
 		});
 		var response = await httpClient.GetAsync($"/Customer/ReadCustomer{queryString}", ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<ReadCustomerDto?>(cancellationToken: ct);
+		var content = await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<ReadCustomerDto?>(cancellationToken: ct);
+		return content;
 	}
 	public async Task<string?> UpdateCustomerAsync(UpdateCustomerDto Customer, CancellationToken ct = default)
 	{
 		var response = await httpClient.PutAsync($"/Customer/UpdateCustomer", JsonContent.Create(Customer), ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
+		var content = await response.Content.ReadAsStringAsync(ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	#endregion
 
 	#region Invoice
 	public async Task<string?> CreateInvoiceAsync(CreateSellingInvoiceDto invoice, CancellationToken ct = default)
 	{
+
 		var response = await httpClient.PostAsync($"/SellingInvoice/CreateInvoice", JsonContent.Create(invoice), ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
+		var content = await response.Content.ReadAsStringAsync(ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	public async  Task<string?> DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 	{
 		var response = await httpClient.DeleteAsync($"/SellingInvoice/DeleteInvoice?InvoiceId={InvoiceId}", ct);
-		return await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
+		var content = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	public async  Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 	{
@@ -64,6 +91,17 @@ public class CustomerManagerClientHttp(HttpClient httpClient) : ICustomerManager
 		});
 		var response = await httpClient.GetAsync($"/Product/ReadProduct{queryString}", ct);
 		return await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<ReadAndUpdateProductDto?>(cancellationToken: ct);
+	}
+
+	public async Task<string?> BuildProduct(IEnumerable<BuildEndProductDto> ProductsToCreate, CancellationToken ct = default)
+	{
+		var response = await httpClient.PostAsync($"/Product/BuildProduct", JsonContent.Create(ProductsToCreate), ct);
+		var content = await response.Content.ReadAsStringAsync(ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			throw new CustomerServiceException((int)response.StatusCode, content);
+		}
+		return content;
 	}
 	#endregion
 

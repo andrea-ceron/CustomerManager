@@ -14,6 +14,21 @@ public class EndProductsKafkaMessageHandler(
 	ErrorManagerMiddleware errorManager	)
 	: AbstractMessageHandler<EndProductDtoForKafka, Product>(errorManager, map)
 {
+	protected override Task CompensationDeleteDeleteDto(Product? messageDto, CancellationToken ct = default)
+	{
+		throw new NotImplementedException();
+	}
+
+	protected override Task CompensationInsertDto(Product? domainDto, CancellationToken ct = default)
+	{
+		throw new NotImplementedException();
+	}
+
+	protected override Task CompensationUpdateDto(Product? messageDto, CancellationToken ct = default)
+	{
+		throw new NotImplementedException();
+	}
+
 	protected override async Task DeleteDto(Product? messageDto, CancellationToken ct = default)
 	{
 		await repository.DeleteProductAsync(messageDto?.Id ?? 0, ct);

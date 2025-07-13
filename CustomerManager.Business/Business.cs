@@ -1,16 +1,11 @@
 ﻿using AutoMapper;
-using Confluent.Kafka;
 using CustomerManager.Business.Abstraction;
 using CustomerManager.Business.DTOHelper;
 using CustomerManager.Repository.Abstraction;
 using CustomerManager.Repository.Model;
-using CustomerManager.Shared;
 using CustomerManager.Shared.DTO;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Logging;
 using StockManager.Shared.DTO;
-using System.Security.Cryptography;
 
 namespace CustomerManager.Business
 {
@@ -136,7 +131,9 @@ namespace CustomerManager.Business
 
 				}).ToList() 
 			};
+			
 			await stockManagerClientHttp.CreateShipment(newShipment, ct);
+
 
 			await repository.CreateTransaction(async () =>
 			{

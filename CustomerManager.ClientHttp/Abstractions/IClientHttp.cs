@@ -18,7 +18,9 @@ public interface ICustomerManagerClientHttp
 	#endregion
 
 	#region Product
-	Task<ReadAndUpdateProductDto?> GetProductAsync(int productId, CancellationToken ct = default);
+	public Task<ReadAndUpdateProductDto?> GetProductAsync(int productId, CancellationToken ct = default);
+	public Task<string?> BuildProduct(IEnumerable<BuildEndProductDto> ProductsToCreate, CancellationToken ct = default);
+
 	#endregion
 
 }
