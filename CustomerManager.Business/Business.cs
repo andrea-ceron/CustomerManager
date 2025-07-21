@@ -132,7 +132,7 @@ namespace CustomerManager.Business
 				}).ToList() 
 			};
 			
-			await stockManagerClientHttp.CreateShipment(newShipment, ct);
+			//await stockManagerClientHttp.CreateShipment(newShipment, ct);
 
 
 			await repository.CreateTransaction(async () =>
@@ -142,7 +142,7 @@ namespace CustomerManager.Business
 
 		}
 
-		public async Task CreateInvoiceHelper(IEnumerable<CreateInvoiceProductsDto>? Products, CreateSellingInvoiceDto invoiceDto, CancellationToken ct = default)
+		public async Task CreateInvoiceHelper(IEnumerable<CreateInvoiceProductsDto> Products, CreateSellingInvoiceDto invoiceDto, CancellationToken ct = default)
 		{
 			List<CreateInvoiceProductHelper> InvoiceProductsHelperList = new();
 			foreach (var product in Products)
@@ -206,7 +206,7 @@ namespace CustomerManager.Business
 			});
 			logger.LogInformation("Fattura con Id {InvoiceId} eliminata con successo", InvoiceId);
 		}
-		public async Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
+		public async Task<ReadSellingInvoiceDto> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default)
 		{
 			var res = await repository.GetInvoiceByIdAsync(InvoiceId, ct);
 			if (res == null) throw new ExceptionHandlerBuisiness("il valore passato alla funzione non è associato a nessun identificativo di fattura", 404);

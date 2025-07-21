@@ -19,7 +19,12 @@ builder.Services.AddDbContext<ClientsDbContext>(options => options.UseSqlServer(
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<IBusiness, Business>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-builder.Services.AddKafkaConsumer<KafkaTopicInput, MessageHandlerFactory>(builder.Configuration);
+
+builder.Services.AddSingleton(p => ActivatorUtilities.CreateInstance<CustomerManagerSubject>(p));
+builder.Services.AddSingleton<ICustomerManagerObservable>(p => p.GetRequiredService<CustomerManagerSubject>());
+builder.Services.AddSingleton<ICustomerManagerObserver>(p => p.GetRequiredService<CustomerManagerSubject>());
+
+builder.Services.AddKafkaConsumerAndProducer<KafkaTopicInput, KafkaTopicsOutput, MessageHandlerFactory, ProducerServiceWithSubscription>(builder.Configuration);
 builder.Services.AddStockManagerClientHttp(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();

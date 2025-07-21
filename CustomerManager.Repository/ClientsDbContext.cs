@@ -47,6 +47,8 @@ namespace CustomerManager.Repository
 				.WithOne(p => p.Product)
 				.HasForeignKey(p => p.ProductId);
 
+			mb.Entity<TransactionalOutbox>()
+				.HasKey(p => p.Id);
 
 			base.OnModelCreating(mb);
 
@@ -57,6 +59,7 @@ namespace CustomerManager.Repository
 		public DbSet<Address> Addresses { get; set; }
 		public DbSet<Product> Products { get; set; }
 		public DbSet<InvoiceProducts> InvoiceProducts { get; set; }
+		public DbSet<TransactionalOutbox> TransactionalOutboxes { get; set; }
 
 
 

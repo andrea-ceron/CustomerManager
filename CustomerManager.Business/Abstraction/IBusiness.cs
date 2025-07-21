@@ -7,7 +7,7 @@ namespace CustomerManager.Business.Abstraction
     {
 		public Task CreateInvoiceAsync(CreateSellingInvoiceDto invoice, CancellationToken ct = default);
 		public Task DeleteInvoiceAsync(int InvoiceId, CancellationToken ct = default);
-		public Task<ReadSellingInvoiceDto?> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default);
+		public Task<ReadSellingInvoiceDto> GetInvoiceAsync(int InvoiceId, CancellationToken ct = default);
 
 
 
