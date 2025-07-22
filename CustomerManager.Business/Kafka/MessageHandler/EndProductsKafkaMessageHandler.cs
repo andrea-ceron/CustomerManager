@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Confluent.Kafka;
 using CustomerManager.Business.Abstraction;
 using CustomerManager.Business.Factory;
 using CustomerManager.Repository.Abstraction;
@@ -19,9 +20,43 @@ public class EndProductsKafkaMessageHandler(
 {
 	static private List<InvoiceProducts>? ListOfInvoiceProducts = new();
 
-	protected async override Task DeleteDto(Product? message, EndProductDtoForKafka payload, CancellationToken ct = default)
+	protected override Task CompensationDeleteDto(Product? messageDto, EndProductDtoForKafka rawPayload, CancellationToken ct = default)
 	{
-		 ListOfInvoiceProducts = (List<InvoiceProducts>?)await repository.GetAllInvoiceProductsByProductId(message.Id, ct);
+		throw new NotImplementedException();
+	}
+	protected override async Task CompensationInsertDto(Product? messageDto, CancellationToken ct = default)
+	{
+		if (messageDto == null || ListOfInvoiceProducts == null)
+		{
+			logger.LogWarning("Il messaggio del prodotto è null. Operazione di creazione annullata.");
+			return;
+		}
+		var result = await repository.CreateProductAsync(messageDto, ct);
+		await repository.SaveChangesAsync(ct);
+
+		if (ListOfInvoiceProducts.Count > 0)
+		{
+			logger.LogInformation("Eseguo la creazione della lista di RawMaterialForProduction");
+			ListOfInvoiceProducts.ForEach(async x =>
+			{
+				x.ProductId = result.Id;
+				x.Id = 0;
+				await repository.CreateInvoiceProductAsync(x, ct);
+			});
+
+			await repository.SaveChangesAsync(ct);
+			ListOfInvoiceProducts.Clear();
+		}
+	}
+	protected override Task CompensationUpdateDto(Product? messageDto, CancellationToken ct = default)
+	{
+		throw new NotImplementedException();
+	}
+
+
+	protected override async  Task DeleteDto(Product? message, EndProductDtoForKafka payload, CancellationToken ct = default)
+	{
+		ListOfInvoiceProducts = (List<InvoiceProducts>?)await repository.GetAllInvoiceProductsByProductId(message.Id, ct);
 		if (message == null)
 			throw new Exception("Il messaggio non può essere null.");
 

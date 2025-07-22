@@ -78,7 +78,7 @@ public class ProducerServiceWithSubscription(
 
 	private async Task EndProductCompensationOperation(TransactionalOutbox elem, IRepository repository, IBusiness business, CancellationToken cancellationToken = default)
 	{
-		var opMsg = TransactionalOutboxFactory.Deserialize<EndProductDtoForKafka, Product>(elem.Message);
+		var opMsg = TransactionalOutboxFactory.Deserialize<EndProductDtoForKafka>(elem.Message);
 		switch (opMsg.Operation)
 		{
 			case Operations.Insert:

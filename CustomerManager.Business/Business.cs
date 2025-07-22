@@ -131,8 +131,8 @@ namespace CustomerManager.Business
 
 				}).ToList() 
 			};
-			
-			//await stockManagerClientHttp.CreateShipment(newShipment, ct);
+
+			await stockManagerClientHttp.CreateShipment(newShipment, ct);
 
 
 			await repository.CreateTransaction(async () =>

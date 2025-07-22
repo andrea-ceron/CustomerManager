@@ -8,19 +8,16 @@ public static class TransactionalOutboxFactory
 {
 	public static TransactionalOutbox CreateCompensationInsertRawMaterial(EndProductDtoForKafka dto) => Create(dto, Operations.CompensationInsert);
 
-	private static TransactionalOutbox Create(EndProductDtoForKafka dto, string operation, EndProductDtoForKafka? previousState = null) => Create(nameof(EndProductDtoForKafka), dto, operation, previousState);
+	private static TransactionalOutbox Create(EndProductDtoForKafka dto, string operation) => Create(nameof(EndProductDtoForKafka), dto, operation);
 
-	private static TransactionalOutbox Create<TDTO, TModel>(string table, TDTO dto, string operation, TModel? model) 
-		where TDTO : class 
-		where TModel: class, new()
+	private static TransactionalOutbox Create<TDTO>(string table, TDTO dto, string operation) 
+		where TDTO : class, new()
 	{
 
-		OperationMessage<TDTO, TModel> opMsg = new()
+		OperationMessage<TDTO> opMsg = new()
 		{
 			Dto = dto,
 			Operation = operation,
-			previousState = model
-
 		};
 
 		return new TransactionalOutbox()
@@ -30,8 +27,8 @@ public static class TransactionalOutboxFactory
 		};
 	}
 
-	public static OperationMessage<TDTO, TModel> Deserialize<TDTO, TModel>(string json) where TDTO : class where TModel : class, new()
+	public static OperationMessage<TDTO> Deserialize<TDTO>(string json) where TDTO : class, new()
 	{
-		return JsonSerializer.Deserialize<OperationMessage<TDTO, TModel>>(json)!;
+		return JsonSerializer.Deserialize<OperationMessage<TDTO>>(json)!;
 	}
 }
